@@ -1,40 +1,50 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const ProductList = () => {
-  const [products, setProducts] = useState([]);
+  const [items, setItems] = useState([]);
+  const navigate = useNavigate();
 
-  // Fetch products from the backend API when the component mounts
   useEffect(() => {
-    axios
-      .get('http://localhost:8000/api/product/') // Replace with your actual API endpoint
-      .then((response) => {
-        setProducts(response.data); // Set the products data
+    const fetchProducts = axios.get("http://127.0.0.1:8000/api/api/product/");
+    const fetchAccessories = axios.get("http://127.0.0.1:8000/api/api/accessories/");
+
+    Promise.all([fetchProducts, fetchAccessories])
+      .then(([productRes, accessoryRes]) => {
+        const products = productRes.data.map((p) => ({ ...p, type: "product" }));
+        const accessories = accessoryRes.data.map((a) => ({ ...a, type: "accessory" }));
+
+        const combinedItems = [...products, ...accessories].sort(() => Math.random() - 0.5);
+        setItems(combinedItems);
       })
-      .catch((error) => {
-        console.error('There was an error fetching the products:', error);
-      });
-  }, []); // Empty dependency array means this runs once when the component mounts
+      .catch((error) => console.error("Error fetching data:", error));
+  }, []);
+
+  const handleClick = (item) => {
+    navigate(item.type === "product" ? "/shop" : "/accessories");
+  };
 
   return (
-    <div className="container mx-auto p-8">
-      <h2 className="text-3xl font-bold text-center mb-8">Product List</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        {products.map((product) => (
+    <div className="container mx-auto px-8 py-10">
+      <h2 className="text-4xl font-bold text-center mb-8">Explore Our Collection</h2>
+
+      {/* Product Showcase Section */}
+      <div className="flex overflow-x-auto space-x-6 scrollbar-hide">
+        {items.map((item) => (
           <div
-            key={product.id}
-            className="bg-white w-full h-[300px] rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col justify-between items-center p-4"
+            key={item._id}
+            onClick={() => handleClick(item)}
+            className="flex-shrink-0 cursor-pointer text-center"
           >
             <img
-              src={product.image}
-              alt={product.productname}
-              className="w-full h-3/5 object-cover rounded-lg mb-4"
+              src={item.image}
+              alt={item.productname || item.accessory_name}
+              className="w-[220px] h-[220px] object-contain mx-auto"
             />
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">{product.productname}</h3>
-              <p className="text-sm text-gray-600 mb-2">{product.category}</p>
-              <p className="font-bold text-lg text-green-600">${product.price}</p>
-            </div>
+            <h3 className="text-lg font-semibold text-gray-900">{item.productname || item.accessory_name}</h3>
+            <p className="text-sm text-gray-600">{item.productcategory || item.category}</p>
+            <p className="text-lg font-bold text-green-600">Rs. {item.price}</p>
           </div>
         ))}
       </div>

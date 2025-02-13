@@ -2,20 +2,25 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { addItem } from "../redux/slices/cartSlice";
+import { LazyLoadImage } from "react-lazy-load-image-component";
+import "react-lazy-load-image-component/src/effects/blur.css"; // Import effect styles
+import { useNavigate } from "react-router-dom";
 
 const ShopPage = () => {
   const [products, setProducts] = useState([]);
   const [filter, setFilter] = useState("");
-  const [showMessage, setShowMessage] = useState(false); // State for popup message
-  const [selectedProduct, setSelectedProduct] = useState(null); // State for selected product for details
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [brandFilter, setBrandFilter] = useState("");
+  const [showMessage, setShowMessage] = useState(false);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const cartCount = useSelector(state => state.cart.reduce((total, item) => total + item.quantity, 0));
 
   useEffect(() => {
     axios
-      .get("http://localhost:8000/api/product/")
+      .get("http://127.0.0.1:8000/api/api/product/")
       .then((response) => {
-        console.log(response.data); // Log the response data to check if productinfo is there
+        console.log(response.data); 
         setProducts(response.data);
       })
       .catch((error) => console.error("Error fetching products:", error));
@@ -23,26 +28,27 @@ const ShopPage = () => {
 
   const handleAddToCart = (product) => {
     dispatch(addItem({ id: product._id, name: product.productname, price: product.price }));
-
-    setShowMessage(true); // Show success message
-    setTimeout(() => setShowMessage(false), 2000); // Hide after 2 sec
+    setShowMessage(true);
+    setTimeout(() => setShowMessage(false), 2000);
   };
 
   const handleViewDetails = (product) => {
-    setSelectedProduct(product); // Set the selected product for modal
+    navigate(`/product/${product._id}`);
   };
 
-  const closeModal = () => {
-    setSelectedProduct(null); // Close the modal
-  };
+  const filteredProducts = products.filter(product =>
+    product.productname.toLowerCase().includes(filter.toLowerCase()) &&
+    (categoryFilter === "" || product.productcategory === categoryFilter) &&
+    (brandFilter === "" || product.productbrand === brandFilter)
+  );
 
   return (
     <div className="bg-gray-100 py-12">
       <div className="container mx-auto px-6 md:px-12">
         <h1 className="text-4xl font-bold text-center text-gray-800 mb-8">Shop Our Bikes</h1>
 
-        {/* Search Bar */}
-        <div className="mb-8 text-center">
+        {/* Filters */}
+        <div className="mb-8 flex flex-col sm:flex-row justify-center gap-4">
           <input
             type="text"
             value={filter}
@@ -50,11 +56,29 @@ const ShopPage = () => {
             className="p-3 w-full sm:w-80 text-gray-700 border border-gray-300 rounded-lg shadow-md"
             placeholder="Search for bikes..."
           />
+          <select 
+            value={categoryFilter} 
+            onChange={(e) => setCategoryFilter(e.target.value)} 
+            className="p-3 border border-gray-300 rounded-lg shadow-md">
+            <option value="">All Categories</option>
+            {[...new Set(products.map(p => p.productcategory))].map(category => (
+              <option key={category} value={category}>{category}</option>
+            ))}
+          </select>
+          <select 
+            value={brandFilter} 
+            onChange={(e) => setBrandFilter(e.target.value)} 
+            className="p-3 border border-gray-300 rounded-lg shadow-md">
+            <option value="">All Brands</option>
+            {[...new Set(products.map(p => p.productbrand))].map(brand => (
+              <option key={brand} value={brand}>{brand}</option>
+            ))}
+          </select>
         </div>
 
         {/* Cart Button with Count */}
         <div className="text-right mb-4">
-          <button className="relative bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">
+          <button onClick={() => navigate('/cart')} className="relative bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">
             🛒 Cart ({cartCount})
           </button>
         </div>
@@ -68,11 +92,20 @@ const ShopPage = () => {
 
         {/* Product List */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {products.map((product) => (
+          {filteredProducts.map((product) => (
             <div key={product._id} className="max-w-sm rounded-lg overflow-hidden shadow-lg bg-white hover:shadow-xl transition-shadow duration-300">
-              <img className="w-full h-48 object-cover" src={product.image} alt={product.productname} />
+              
+              {/* Lazy Load Image */}
+              <LazyLoadImage
+                src={product.image}
+                alt={product.productname}
+                effect="blur" // Lazy loading effect (blur, opacity, etc.)
+                className="w-full h-48 object-cover cursor-pointer"
+                onClick={() => handleViewDetails(product)}
+              />
+
               <div className="px-6 py-4">
-                <h2 className="font-bold text-xl mb-2 text-gray-800">{product.productname}</h2>
+                <h2 className="font-bold text-xl mb-2 text-gray-800 cursor-pointer" onClick={() => handleViewDetails(product)}>{product.productname}</h2>
                 <p className="text-lg font-semibold text-gray-800">Rs. {product.price}</p>
               </div>
               <div className="px-6 pb-4">
@@ -93,46 +126,6 @@ const ShopPage = () => {
           ))}
         </div>
       </div>
-
-      {/* Modal for Product Details */}
-      {selectedProduct && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-96">
-            <h2 className="text-2xl font-bold mb-4">{selectedProduct.productname}</h2>
-            <img
-              className="w-full h-48 object-cover mb-4"
-              src={selectedProduct.image}
-              alt={selectedProduct.productname}
-            />
-            <p className="text-lg font-semibold text-gray-800 mb-4">Rs. {selectedProduct.price}</p>
-
-            {/* Scrollable Product Details */}
-            <div className="overflow-y-auto max-h-96 mb-4">
-              <div className="mb-4">
-                <h3 className="text-xl font-semibold text-gray-700">Brand:</h3>
-                <p className="text-gray-700">{selectedProduct.productbrand || "No brand info available"}</p>
-              </div>
-              <div className="mb-4">
-                <h3 className="text-xl font-semibold text-gray-700">Category:</h3>
-                <p className="text-gray-700">{selectedProduct.productcategory || "No category info available"}</p>
-              </div>
-              <div className="mb-4">
-                <h3 className="text-xl font-semibold text-gray-700">Info:</h3>
-                <p className="text-gray-700">{selectedProduct.productinfo || "No additional information available"}</p> {/* Displaying productinfo */}
-              </div>
-            </div>
-
-            <div className="flex justify-between mt-4">
-              <button
-                onClick={closeModal}
-                className="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

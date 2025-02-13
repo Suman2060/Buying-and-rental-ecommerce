@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom'; // Import Link from react-router-dom
-import logo from "../assets/logo.jpg";
+import logo from "../assets/logo.jpg"; // Main logo
+import cartLogo from "../assets/cart-logo.png"; // Cart logo (replace with actual logo path)
+import accountLogo from "../assets/account-logo.png"; // Account logo (replace with actual logo path)
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
-    <nav className="bg-white-900 text-red-600 shadow-md">
+    <nav className="bg-black-900 text-blue-600 shadow-md">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         {/* Logo */}
         <div className="flex items-center">
@@ -17,7 +19,7 @@ const Navbar = () => {
 
         {/* Navigation Links */}
         <div className='hidden md:flex space-x-6'>
-          <Link to="/" className="hover:text-blue-500">Home</Link> {/* Change <a> to <Link> */}
+          <Link to="/" className="hover:text-blue-500">Home</Link>
           <Link to="/shop" className="hover:text-blue-500">Shop</Link>
           <Link to="/rentals" className="hover:text-blue-500">Rentals</Link>
           <Link to="/booking" className="hover:text-blue-500">Booking</Link>
@@ -25,19 +27,14 @@ const Navbar = () => {
           <Link to="/contact" className="hover:text-blue-500">Contact</Link>
         </div>
 
-        {/* Search Bar */}
-        <div className="hidden md:block">
-          <input
-            type="text"
-            placeholder="Search..."
-            className="px-3 py-1 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
-          />
-        </div>      
-
-        {/* User Options */}
+        {/* User Options (Cart & Account logos) */}
         <div className="flex space-x-4">
-          <Link to="/cart" className="hover:text-yellow-500">Cart</Link> {/* Use Link here */}
-          <Link to="/account" className="hover:text-yellow-500">Account</Link> {/* Use Link here */}
+          <Link to="/cart">
+            <img src={cartLogo} alt="Cart" className="h-8 w-8 hover:text-yellow-500" /> {/* Cart logo */}
+          </Link>
+          <Link to="/account">
+            <img src={accountLogo} alt="Account" className="h-8 w-8 hover:text-yellow-500" /> {/* Account logo */}
+          </Link>
         </div>
 
         {/* Hamburger Menu */}

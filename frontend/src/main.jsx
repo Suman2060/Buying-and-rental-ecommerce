@@ -13,6 +13,8 @@ import Account from './pages/Account.jsx'
 import AddtoCart from './pages/AddtoCart.jsx'
 import { Provider } from 'react-redux'
 import { store } from './redux/store.js'
+import AccessoryDetails from './components/AccessoryDetails.jsx'
+import ProductDetails from './components/ProductDetails.jsx'
 
 
 
@@ -50,6 +52,14 @@ const router =createBrowserRouter([
   {
     path: '/cart',
     element: <AddtoCart/>
+  },
+  {
+    path: '/accessory/:id',
+    element:<AccessoryDetails />
+  },
+  {
+    path:'/product/:id',
+    element:<ProductDetails/>
   }
 
 

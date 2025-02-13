@@ -1,9 +1,11 @@
 from django.db import models
-from django.contrib.auth.models import User
+# from django.contrib.auth.models import User
+from django.conf import settings
 
 # Create your models here.
 class Products(models.Model):
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)  # Fixed on_delete
+    # user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)  # Fixed on_delete
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)
     productname = models.CharField(max_length=220)
     image = models.ImageField(null=True, blank=True)
     productbrand = models.CharField(max_length=220, null=True, blank=True)
@@ -20,7 +22,7 @@ class Products(models.Model):
 
 # Accessories Model
 class Accessories(models.Model):
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)  # Tracks the user who added the accessory
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)
     product = models.ForeignKey(Products, on_delete=models.CASCADE, null=True, blank=True)  # Links accessory to a product (if needed)
     accessory_name = models.CharField(max_length=220)  # Name of the accessory
     image = models.ImageField(null=True, blank=True)  # Image of the accessory
@@ -37,3 +39,19 @@ class Accessories(models.Model):
 
     def __str__(self):
         return self.accessory_name
+
+class Cart(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)  # Each user has a cart
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Cart for {self.user.username}"
+
+class CartItem(models.Model):
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items")  # Each cart has multiple items
+    product = models.ForeignKey(Products, on_delete=models.CASCADE, null=True, blank=True)
+    accessory = models.ForeignKey(Accessories, on_delete=models.CASCADE, null=True, blank=True)
+    quantity = models.PositiveIntegerField(default=1)  # Quantity of product/accessory
+
+    def __str__(self):
+        return f"{self.quantity} of {self.product or self.accessory}"

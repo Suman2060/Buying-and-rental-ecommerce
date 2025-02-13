@@ -19,20 +19,20 @@ const Contact = () => {
                 <span className="text-blue-600 text-xl mr-4">
                   <i className="fas fa-phone"></i>
                 </span>
-                <span className="text-gray-700">+1 (555) 123-4567</span>
+                <span className="text-gray-700">123-456-789</span>
               </div>
               <div className="flex items-center">
                 <span className="text-blue-600 text-xl mr-4">
                   <i className="fas fa-envelope"></i>
                 </span>
-                <span className="text-gray-700">info@cycleshop.com</span>
+                <span className="text-gray-700">info@bikefarm.com</span>
               </div>
               <div className="flex items-center">
                 <span className="text-blue-600 text-xl mr-4">
                   <i className="fas fa-map-marker-alt"></i>
                 </span>
                 <span className="text-gray-700">
-                  123 Cycle Lane, Adventure City, USA
+                  Jhamsikhel Lalitpur
                 </span>
               </div>
             </div>

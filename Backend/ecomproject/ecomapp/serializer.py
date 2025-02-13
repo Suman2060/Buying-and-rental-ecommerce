@@ -3,16 +3,23 @@ from django.contrib.auth.models import User
 from .models import Products,Accessories
 from rest_framework_simplejwt.tokens import RefreshToken
 
+# serializer for product
 class ProductSerializer(serializers.ModelSerializer):
-    class Meta:
-        model=Products
-        fields = '__all__'
+    _id = serializers.IntegerField(read_only=True)  # Explicitly defining _id
 
-#accessories serializer
+    class Meta:
+        model = Products
+        fields = ['_id', 'user', 'productname', 'image', 'productbrand', 'productcategory', 
+                  'productinfo', 'rating', 'price', 'stockcount', 'createdat']
+# serializer for accessory
 class AccessoriesSerializer(serializers.ModelSerializer):
+    _id = serializers.IntegerField(read_only=True)  # Explicitly defining _id
+
     class Meta:
         model = Accessories
-        fields = '__all__'
+        fields = ['_id', 'user', 'product', 'accessory_name', 'image', 'compatible_with', 
+                  'material', 'brand', 'category', 'description', 'rating', 'price', 
+                  'stock_count', 'created_at']
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:

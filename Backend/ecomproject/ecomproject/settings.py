@@ -1,5 +1,6 @@
 from datetime import timedelta
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -30,6 +31,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',  
+    'account',
 ]
 
 MIDDLEWARE = [
@@ -43,6 +46,14 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+AUTH_USER_MODEL = 'account.User' 
+
+
 
 #this project configuration for the simple JWT token
 
@@ -122,7 +133,7 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=25),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": False,
-    "BLACKLIST_AFTER_ROTATION": False,
+    "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": False,
 
     "ALGORITHM": "HS256",
@@ -162,15 +173,23 @@ SIMPLE_JWT = {
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
+# STATIC_URL = 'static/'
 
-MEDIA_URL='/images/'
+# MEDIA_URL='/images/'
 
-STATICFILES_DIRS =[
+# STATICFILES_DIRS =[
+#     BASE_DIR / 'static'
+# ]
+
+# MEDIA_ROOT= 'static/images'
+STATIC_URL = '/static/'
+MEDIA_URL = '/media/'
+
+STATICFILES_DIRS = [
     BASE_DIR / 'static'
 ]
 
-MEDIA_ROOT= 'static/images'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'static/images')
 # MEDIA_ROOT='static/images'
 
 # Default primary key field type
@@ -178,8 +197,7 @@ MEDIA_ROOT= 'static/images'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOWED_ALL_ORIGIN =True
-
+CORS_ALLOW_ALL_ORIGINS = True  
 
 
 # Allow frontend URL (change this based on where your frontend is hosted)

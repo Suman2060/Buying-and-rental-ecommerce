@@ -1,4 +1,3 @@
-// import React from "react";
 
 const Footer = () => {
   return (
@@ -26,7 +25,7 @@ const Footer = () => {
           {/* Contact Section */}
           <div>
             <h3 className="text-lg font-bold mb-4 text-white">Contact Us</h3>
-            <p className="text-sm">BikeFarm-Nepal,Jhamsikhel, CA 90210</p>
+            <p className="text-sm">Bike-Farm Nepal, Jhamsikhel</p>
             <p className="text-sm">Email: info@bikefarm.com</p>
             <p className="text-sm">Phone: 123-456-7890</p>
           </div>
@@ -35,7 +34,7 @@ const Footer = () => {
         <hr className="my-6 border-gray-600" />
         {/* Bottom Section */}
         <div className="flex flex-col md:flex-row justify-between items-center">
-          <p className="text-sm">© {new Date().getFullYear()} Cycle Shop. All Rights Reserved.</p>
+          <p className="text-sm">© {new Date().getFullYear()} Bike-Farm Nepal. All Rights Reserved.</p>
           <div className="flex space-x-4 mt-4 md:mt-0">
             <a href="#" className="hover:text-blue-400">
               <i className="fab fa-facebook"></i> Facebook

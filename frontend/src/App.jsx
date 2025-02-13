@@ -10,6 +10,9 @@ import Rental from "./pages/Rental";
 import Booking from "./pages/Booking";
 import Contact_us from "./pages/Contact_us";
 import Accessories from "./page/AcessoriesSection";
+import AccessoryDetails from "./components/AccessoryDetails";
+import ProductDetails from "./components/ProductDetails";
+
 
 
 function App() {
@@ -25,6 +28,8 @@ function App() {
         <Route path="/booking" element={<Booking />}/>
         <Route path="/accessories" element={<Accessories  />}/>
         <Route path="/contact" element={<Contact_us />}/>
+        <Route path="/accessory/:id" element={<AccessoryDetails />} />
+        <Route path="/product/:id" element={<ProductDetails/>} />
       </Routes>
       
     </BrowserRouter>

@@ -14,6 +14,8 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.conf import settings
+from django.conf.urls.static import static
 from . import views
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -22,8 +24,14 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
     path('', views.getRoutes,name="getRoutes"),
-    path('product/',views.getProduct,name="getProduct"),
-    path('accessories/',views.getAccessories,name='getAccessories'),
+    path('api/product/',views.getProduct,name="getProduct"),
+    path('api/accessories/', views.getAccessories, name='getAccessories'),
     path('users/login/', views.MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('users/profile/',views.getUserProfile,name="getUserProfile") 
+    path('users/profile/',views.getUserProfile,name="getUserProfile"),
+    path('image/', views.getimage, name='get_image'),
+    path('api/accessories/<int:id>/', views.getAccessoryDetail, name='accessory-detail'),
+    path('api/product/<int:id>/', views.getProductDetail, name='product-detail'),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

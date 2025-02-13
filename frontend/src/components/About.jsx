@@ -7,7 +7,7 @@ const AboutUs = () => {
         {/* Section Title */}
         <h2 className="text-4xl font-bold text-gray-800 mb-6">About Us</h2>
         <p className="text-gray-600 text-lg leading-relaxed mb-8">
-          At <span className="font-semibold text-blue-600">Cycle Haven</span>, we believe every ride tells a story. 
+          At <span className="font-semibold text-blue-600">Bike-Farm Nepal</span>, we believe every ride tells a story. 
           From seasoned cyclists to first-time riders, our mission is to provide top-quality bikes, accessories, 
           and services to make your adventures unforgettable.
         </p>

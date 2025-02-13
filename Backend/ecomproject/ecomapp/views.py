@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 # from .product import products  # Importing the existing products list
 from .models import Products,Accessories
 from rest_framework.response import Response
@@ -13,22 +13,42 @@ from rest_framework.permissions import IsAuthenticated
 # Create your views here.
 
 #these are the api to get all products
+# @api_view(['GET'])
+# def getProduct(request):
+#     products=Products.objects.all()
+#     serializer=ProductSerializer(products,many=True)
+#     # Use the imported products list
+#     return Response(serializer.data)
 @api_view(['GET'])
 def getProduct(request):
-    products=Products.objects.all()
-    serializer=ProductSerializer(products,many=True)
-    # Use the imported products list
+    products = Products.objects.all()
+    serializer = ProductSerializer(products, many=True, context={'request': request})
+    return Response(serializer.data)
+
+@api_view(['GET'])
+def getProductDetail(request, id):
+    product = get_object_or_404(Products, _id=id)
+    serializer = ProductSerializer(product, context={'request': request})
     return Response(serializer.data)
 
 @api_view(['GET'])
 def getAccessories(request):
     accessories = Accessories.objects.all()
-    serializer = AccessoriesSerializer(accessories, many=True)
+    serializer = AccessoriesSerializer(accessories, many=True, context={'request': request})
     return Response(serializer.data)
+
+#  API to get accessory details by ID
+@api_view(['GET'])
+def getAccessoryDetail(request, id):
+    accessory = get_object_or_404(Accessories, _id=id)# Fetch the accessory by ID
+    serializer = AccessoriesSerializer(accessory, context={'request': request})# Serialize the accessory object
+    return Response(serializer.data) # Return the serialized data as a Response
 
 @api_view(['GET'])
 def getimage(request):
-    image = Products.objects.all()
+    images = Products.objects.all()
+    serializer = ProductSerializer(images, many=True, context={'request': request})
+    return Response(serializer.data)
 
 @api_view(['GET'])
 def getRoutes(request):

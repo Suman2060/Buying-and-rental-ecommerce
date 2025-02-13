@@ -24,6 +24,7 @@ class TokenRefreshView():
 class UserRegistrationView(APIView):
     renderer_classes = [UserRenderer]
     def post(self, request, format=None):
+        print(request.data)
         serializer = UserRegistrationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
@@ -32,21 +33,42 @@ class UserRegistrationView(APIView):
         
 class UserLoginView(APIView):
     renderer_classes = [UserRenderer]
+
     def post(self, request, format=None):
+        print("hello")
+        print("Received login request data:", request.data)
+
         serializer = UserLoginSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        email = serializer.validated_data.get('email') 
+        if not serializer.is_valid():
+            print("Serializer Errors:", serializer.errors)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        email = serializer.validated_data.get('email')
         password = serializer.validated_data.get('password')
+
+        print("Validated email:", email)
+        print("Validated password:", password)
+
         user = authenticate(request, email=email, password=password)
 
         if user is not None:
+            print("User authenticated successfully:", user)
             token = TokenRefreshView.get_tokens_for_user(user)
             return Response({'Token': token, 'msg': 'Login Success'}, status=status.HTTP_200_OK)
         else:
+            print("Authentication failed! Checking user existence...")
+            try:
+                test_user = User.objects.get(email=email)
+                print("User exists:", test_user)
+                print("Stored password hash:", test_user.password)
+                print("Trying to match password manually:", test_user.check_password(password))  # Should return True
+            except User.DoesNotExist:
+                print("User does not exist!")
+
             return Response(
                 {'errors': {'non_field_errors': ['Email or password does not match any registered user']}},
                 status=status.HTTP_404_NOT_FOUND
-                )
+            )
 
 class UserProfileView(APIView):
     renderer_classes = [UserRenderer]
