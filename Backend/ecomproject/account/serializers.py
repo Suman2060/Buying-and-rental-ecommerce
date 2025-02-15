@@ -7,27 +7,34 @@ from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from account.utils import Util
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
-    
-    password2 = serializers.CharField(style={'input_type': 'password'}, write_only=True)
-    
+    password2 = serializers.CharField(style={'input_type': 'password'}, write_only=True, required=False)
+    tc = serializers.BooleanField(required=False, default=False)  # Make tc optional with a default value
+
     class Meta:
-        model = User 
+        model = User
         fields = ['name', 'email', 'password', 'password2', 'tc']
-        extra_kwargs={
-            'password': {'write_only': True}
+        extra_kwargs = {
+            'password': {'write_only': True},
+            'password2': {'write_only': True, 'required': False}  # Explicitly mark password2 as optional
         }
-        
+
     def validate(self, data):
         password = data.get('password')
         password2 = data.get('password2')
-        if password != password2:
-            raise serializers.ValidationError("Password and confirm password doesn't match")
+
+        if password and password2 and password != password2:
+            raise serializers.ValidationError("Password and confirm password don't match")
+
         return data
-    
+
     def create(self, validated_data):
-        validated_data.pop('password2')        
+        validated_data.pop('password2', None)  # Ensure password2 is not passed when creating the user
         user = User.objects.create_user(**validated_data)
         return user
+
+
+
+
 
 class UserLoginSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(max_length=255)

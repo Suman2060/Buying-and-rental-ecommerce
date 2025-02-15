@@ -2,9 +2,7 @@ from django.db import models
 # from django.contrib.auth.models import User
 from django.conf import settings
 
-# Create your models here.
 class Products(models.Model):
-    # user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)  # Fixed on_delete
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)
     productname = models.CharField(max_length=220)
     image = models.ImageField(null=True, blank=True)
@@ -48,10 +46,10 @@ class Cart(models.Model):
         return f"Cart for {self.user.username}"
 
 class CartItem(models.Model):
-    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items")  # Each cart has multiple items
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name="items")  
     product = models.ForeignKey(Products, on_delete=models.CASCADE, null=True, blank=True)
     accessory = models.ForeignKey(Accessories, on_delete=models.CASCADE, null=True, blank=True)
-    quantity = models.PositiveIntegerField(default=1)  # Quantity of product/accessory
+    quantity = models.PositiveIntegerField(default=1)  
 
     def __str__(self):
         return f"{self.quantity} of {self.product or self.accessory}"

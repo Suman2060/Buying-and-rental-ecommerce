@@ -7,6 +7,7 @@ from account.renderers import UserRenderer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.permissions import BasePermission
+from django.contrib.auth import get_user_model  # Import the correct User model
     
 class IsAdminUser(BasePermission):
     def has_permission(self, request, view):
@@ -20,17 +21,30 @@ class TokenRefreshView():
             'refresh': str(refresh),
             'access': str(refresh.access_token),
         }
-
 class UserRegistrationView(APIView):
     renderer_classes = [UserRenderer]
+
     def post(self, request, format=None):
-        print(request.data)
+        # Debugging: print the received data
+        print("Received registration data:", request.data)
+
+        # Create the serializer with the received data
         serializer = UserRegistrationSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        token = TokenRefreshView.get_tokens_for_user(user)
-        return Response({'token': token, 'message': 'User registration successful.'}, status=status.HTTP_201_CREATED)
+
+        # Check if the data is valid
+        if not serializer.is_valid():
+            print("Serializer Errors:", serializer.errors)  # Log errors for debugging
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)  # Return errors if validation fails
         
+        # If valid, save the user and generate a token
+        user = serializer.save()
+
+        # Ensure to get tokens for the user
+        token = TokenRefreshView.get_tokens_for_user(user)
+
+        # Respond with the token and success message
+        return Response({'token': token, 'message': 'User registration successful.'}, status=status.HTTP_201_CREATED)
+
 class UserLoginView(APIView):
     renderer_classes = [UserRenderer]
 
@@ -57,19 +71,22 @@ class UserLoginView(APIView):
             return Response({'Token': token, 'msg': 'Login Success'}, status=status.HTTP_200_OK)
         else:
             print("Authentication failed! Checking user existence...")
+
+            # Get the correct User model
+            User = get_user_model()
             try:
-                test_user = User.objects.get(email=email)
+                test_user = User.objects.get(email=email)  # Now correctly referencing the User model
                 print("User exists:", test_user)
                 print("Stored password hash:", test_user.password)
                 print("Trying to match password manually:", test_user.check_password(password))  # Should return True
-            except User.DoesNotExist:
+            except User.DoesNotExist:  # Correct exception handling
                 print("User does not exist!")
 
             return Response(
                 {'errors': {'non_field_errors': ['Email or password does not match any registered user']}},
                 status=status.HTTP_404_NOT_FOUND
             )
-
+            
 class UserProfileView(APIView):
     renderer_classes = [UserRenderer]
     permission_classes = [IsAuthenticated]
