@@ -5,7 +5,7 @@ import { fetchProductDetail, clearProductDetail } from "../redux/slices/productD
 import axios from "axios";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { addItem } from "../redux/slices/cartSlice"; // Import the addItem action
+import { fetchCart } from "../redux/slices/cartSlice"; // Import correct action for fetching cart items
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -14,6 +14,12 @@ const ProductDetails = () => {
   const { product, status, error } = useSelector((state) => state.productDetail);
   const [otherProducts, setOtherProducts] = useState([]);
   const [showPopup, setShowPopup] = useState(false);
+  const [loading, setLoading] = useState(false); // Loading state for add to cart
+  const [quantity, setQuantity] = useState(1); // State to track selected quantity
+  const [loadingProductId, setLoadingProductId] = useState(null); // Loading state for product being added to cart
+
+  // Get authentication state from Redux
+  const { token } = useSelector((state) => state.auth);
 
   useEffect(() => {
     dispatch(fetchProductDetail(id));
@@ -33,12 +39,50 @@ const ProductDetails = () => {
     }
   };
 
-  // Handle Add to Cart with Redux and Popup Message
-  const handleAddToCart = () => {
-    if (product) {
-      dispatch(addItem({ id: product._id, name: product.productname, price: product.price }));
-      setShowPopup(true);
-      setTimeout(() => setShowPopup(false), 3000); // Auto-hide after 3 seconds
+  // Handle Add to Cart with API and Popup Message (updated)
+  const handleAddToCart = async () => {
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    setLoadingProductId(product._id); // Set loading state for the product being added to the cart
+
+    try {
+      const payload = {
+        item_id: product._id,              // Product ID
+        item_type: "product",               // Item type is "product"
+        item_name: product.productname,     // Product name
+        item_price: product.price,          // Product price
+        quantity: quantity,                // Selected quantity
+      };
+
+      // Make the API call to add the product to the cart
+      const response = await axios.post(
+        "http://127.0.0.1:8000/api/cart/add/",
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, // Authorization header with the token
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      // Handle the response from the server
+      if (response && response.data && response.data.cart_item) {
+        console.log("Product added to cart:", response.data.cart_item);
+        dispatch(fetchCart(token)); // Update Redux with the new cart state
+        setShowPopup(true);
+        setTimeout(() => setShowPopup(false), 3000); // Auto-hide after 3 seconds
+      } else {
+        throw new Error("Unexpected response from the server");
+      }
+    } catch (error) {
+      console.error("Error adding product to cart:", error.response?.data || error.message);
+      alert("Error adding product to cart: " + (error.response?.data?.message || error.message));
+    } finally {
+      setLoadingProductId(null); // Reset loading state after request is completed
     }
   };
 
@@ -86,11 +130,25 @@ const ProductDetails = () => {
             <p className="text-sm text-gray-500 mt-2">Category: {product.productcategory}</p>
 
             <p className="text-2xl font-semibold text-green-700 mt-4">Rs. {product.price}</p>
+
+            {/* Quantity Selection */}
+            <div className="mt-4 flex items-center gap-4">
+              <label className="text-lg text-gray-600">Quantity:</label>
+              <input
+                type="number"
+                value={quantity}
+                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))} // Ensure quantity is at least 1
+                min="1"
+                className="p-2 border border-gray-300 rounded-md w-20 text-center"
+              />
+            </div>
+
             <button
               onClick={handleAddToCart}
-              className="mt-6 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition"
+              className={`mt-6 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition ${loadingProductId === product._id || loading ? "bg-gray-400 cursor-not-allowed" : ""}`}
+              disabled={loadingProductId === product._id || loading}
             >
-              Add to Cart
+              {loadingProductId === product._id || loading ? "Adding..." : "Add to Cart"}
             </button>
           </div>
         </div>

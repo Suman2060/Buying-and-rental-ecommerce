@@ -12,6 +12,8 @@ import Account from './pages/Account'; // Include Account page for authenticatio
 import ProtectedRoute from './components/ProtectedRoute'; // Protect Profile route
 import RegisterPage from './pages/RegisterPage'; // Import RegisterPage
 import PasswordChange from './pages/PasswordChange'; // Import Change Password Page
+import AddToCartPage from './components/Addtocart';
+// import AddToCartPage from './pages/AddtoCart';
 
 const App = () => {
   return (
@@ -27,7 +29,7 @@ const App = () => {
         <Route path="/accessories" element={<AcessoriesSection />} />
         <Route path="/accessory/:id" element={<AccessoryDetails />} />
         <Route path="/product/:id" element={<ProductDetails />} />
-        
+        <Route path="Cart/" element={<AddToCartPage/>}/>
         {/* Authentication Routes */}
         <Route path="/account/*" element={<Account />} /> {/* Handles login, register, etc. */}
         <Route path="/register" element={<RegisterPage />} /> {/* Register Page Route */}

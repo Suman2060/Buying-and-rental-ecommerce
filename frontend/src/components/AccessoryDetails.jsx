@@ -5,7 +5,7 @@ import { fetchAccessoryDetail, clearAccessoryDetail } from "../redux/slices/acce
 import axios from "axios";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import { addItem } from "../redux/slices/cartSlice"; // Import the addItem action
+import { fetchCart } from "../redux/slices/cartSlice"; // Import the fetchCart action
 
 const AccessoryDetails = () => {
   const { id } = useParams();
@@ -14,6 +14,12 @@ const AccessoryDetails = () => {
   const { accessory, status, error } = useSelector((state) => state.accessoryDetail);
   const [otherAccessories, setOtherAccessories] = useState([]);
   const [showPopup, setShowPopup] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [loadingProductId, setLoadingProductId] = useState(null); // Track loading state for add-to-cart button
+  const [quantity, setQuantity] = useState(1); // State to track selected quantity
+
+  // Get authentication state from Redux
+  const { token } = useSelector((state) => state.auth);
 
   useEffect(() => {
     dispatch(fetchAccessoryDetail(id));
@@ -33,12 +39,49 @@ const AccessoryDetails = () => {
     }
   };
 
-  // Handle Add to Cart with Redux and Popup Message
-  const handleAddToCart = () => {
-    if (accessory) {
-      dispatch(addItem({ id: accessory._id, name: accessory.accessory_name, price: accessory.price }));
-      setShowPopup(true);
-      setTimeout(() => setShowPopup(false), 3000); // Auto-hide after 3 seconds
+  // Handle Add to Cart
+  const handleAddToCart = async () => {
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    setLoadingProductId(accessory._id); // Set loading state for this accessory
+
+    try {
+      const payload = {
+        item_id: accessory._id,                // Accessory ID
+        item_type: "accessory",                // Specify this is an accessory
+        item_name: accessory.accessory_name,   // Accessory name
+        item_price: accessory.price,           // Accessory price
+        quantity: quantity,                   // Selected quantity
+      };
+
+      const response = await axios.post(
+        "http://127.0.0.1:8000/api/cart/add/",
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (response && response.data && response.data.cart_item) {
+        console.log("Item added to cart:", response.data.cart_item);
+        // Update the cart state in Redux
+        dispatch(fetchCart(token));
+        setShowPopup(true);
+        setTimeout(() => setShowPopup(false), 3000);
+      } else {
+        throw new Error("Unexpected response from the server");
+      }
+    } catch (error) {
+      console.error("Error adding to cart:", error.response?.data || error.message);
+      alert("Error adding to cart: " + (error.response?.data?.message || error.message));
+    } finally {
+      setLoadingProductId(null); // Reset loading state
     }
   };
 
@@ -69,32 +112,42 @@ const AccessoryDetails = () => {
         </button>
 
         {/* Accessory Details */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 p-6 bg-white shadow-lg rounded-xl">
-          {/* Image Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 p-6 bg-white shadow-lg rounded-xl">
           {accessory.image && (
             <div className="w-full h-full bg-gray-100 rounded-lg overflow-hidden shadow-md">
               <img
-                className="w-full h-full object-contain" // Ensures image fits container while keeping aspect ratio
+                className="w-full h-full object-contain"
                 src={accessory.image}
                 alt={accessory.accessory_name}
               />
             </div>
           )}
-          
-          {/* Details Section */}
-          <div className="flex flex-col justify-between">
-            <h1 className="text-4xl font-bold text-gray-800">{accessory.accessory_name}</h1>
+          <div>
+            <h1 className="text-3xl font-semibold text-gray-800">{accessory.accessory_name}</h1>
             <p className="text-lg text-gray-600 mt-4">{accessory.description}</p>
-            <p className="text-xl text-gray-600 mt-4">Compatible with: {accessory.compatible_with}</p>
-            <p className="text-xl text-gray-600 mt-4">Material: {accessory.material}</p>
-            <p className="text-xl text-gray-600 mt-4">Brand: {accessory.brand}</p>
-            <p className="text-xl text-gray-600 mt-4">Category: {accessory.category}</p>
+            <p className="text-sm text-gray-500 mt-2">Brand: {accessory.brand}</p>
+            <p className="text-sm text-gray-500 mt-2">Category: {accessory.category}</p>
+
             <p className="text-2xl font-semibold text-green-700 mt-4">Rs. {accessory.price}</p>
+
+            {/* Quantity Selection */}
+            <div className="mt-4 flex items-center gap-4">
+              <label className="text-lg text-gray-600">Quantity:</label>
+              <input
+                type="number"
+                value={quantity}
+                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                min="1"
+                className="p-2 border border-gray-300 rounded-md w-20 text-center"
+              />
+            </div>
+
             <button
               onClick={handleAddToCart}
-              className="mt-6 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition"
+              className={`mt-6 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition ${loading ? "bg-gray-400 cursor-not-allowed" : ""}`}
+              disabled={loading}
             >
-              Add to Cart
+              {loading ? "Adding..." : "Add to Cart"}
             </button>
           </div>
         </div>

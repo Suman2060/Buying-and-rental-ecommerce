@@ -1,103 +1,107 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.jpg";
 import cartLogo from "../assets/cart-logo.png";
 import accountLogo from "../assets/account-logo.png";
 import { logoutUser } from "../redux/slices/authSlice";
-import LoginPopup from "./LoginPopup"; // Import the modal component
+import LoginPopup from "./LoginPopup";
 
 const Navbar = () => {
   const { token } = useSelector((state) => state.auth);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [showLoginPopup, setShowLoginPopup] = useState(false); // State for login popup
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
+  const [logoutMessage, setLogoutMessage] = useState("");
+
+  useEffect(() => {
+    const closeDropdown = (e) => {
+      if (!e.target.closest(".dropdown")) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("click", closeDropdown);
+    return () => document.removeEventListener("click", closeDropdown);
+  }, []);
 
   const handleLogout = () => {
     dispatch(logoutUser());
-    navigate("/");
+    setLogoutMessage("You have successfully logged out.");
+    
+    setTimeout(() => {
+      setLogoutMessage("");
+      navigate("/");
+    }, 2000);
   };
 
   return (
     <nav className="bg-white text-blue shadow-md">
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-        <div className="flex items-center">
-          <Link to="/">
-            <img src={logo} alt="Shop Logo" className="h-12 w-auto" />
-          </Link>
-        </div>
-
+        <Link to="/">
+          <img src={logo} alt="Shop Logo" className="h-12 w-auto" />
+        </Link>
+        
         <div className="hidden md:flex space-x-6">
-          <Link to="/" className="hover:text-green-500">Home</Link>
-          <Link to="/shop" className="hover:text-green-500">Shop</Link>
-          <Link to="/rentals" className="hover:text-green-500">Rentals</Link>
-          <Link to="/booking" className="hover:text-green-500">Booking</Link>
-          <Link to="/accessories" className="hover:text-green-500">Accessories</Link>
-          <Link to="/contact" className="hover:text-green-500">Contact</Link>
+          {["Home", "Shop", "Rentals", "Accessories", "Contact"].map((item) => (
+            <Link key={item} to={`/${item.toLowerCase()}`} className="hover:text-green-500">
+              {item}
+            </Link>
+          ))}
         </div>
-
+        
         <div className="flex space-x-4">
           <Link to="/cart">
-            <img src={cartLogo} alt="Cart" className="h-8 w-8 hover:text-yellow-500" />
+            <img src={cartLogo} alt="Cart" className="h-8 w-8" />
           </Link>
-
-          <div className="relative">
+          
+          <div className="relative dropdown">
             {token ? (
-              <button
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center space-x-2 hover:text-yellow-500"
-              >
-                <img src={accountLogo} alt="Account" className="h-8 w-8" />
-                <span>Account</span>
-              </button>
-            ) : (
-              <button onClick={() => setShowLoginPopup(true)}>
-                <img src={accountLogo} alt="Account" className="h-8 w-8 hover:text-yellow-500" />
-              </button>
-            )}
-
-            {isDropdownOpen && token && (
-              <div className="absolute right-0 mt-2 w-48 bg-white text-black shadow-lg rounded-md z-10">
-                <Link to="/profile" className="block px-4 py-2 hover:bg-gray-200">Profile</Link>
-                <Link to="/change-password" className="block px-4 py-2 hover:bg-gray-200">Change Password</Link>
-                <button
-                  onClick={handleLogout}
-                  className="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-200"
-                >
-                  Logout
+              <>
+                <button onClick={() => setIsDropdownOpen((prev) => !prev)} className="flex items-center">
+                  <img src={accountLogo} alt="Account" className="h-8 w-8" />
                 </button>
-              </div>
+                {isDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-md z-10">
+                    <Link to="/profile" className="block px-4 py-2 hover:bg-gray-200">View Profile</Link>
+                    <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-200">
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <button onClick={() => setShowLoginPopup(true)} className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                Login
+              </button>
             )}
           </div>
         </div>
-
-        <button className="md:hidden focus:outline-none" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7"></path>
-          </svg>
-        </button>
       </div>
-
+      
+      <button className="md:hidden focus:outline-none" onClick={() => setIsMenuOpen((prev) => !prev)}>
+        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+        </svg>
+      </button>
+      
       {isMenuOpen && (
         <div className="md:hidden bg-gray-800 text-white">
-          <Link to="/" className="block px-4 py-2 hover:bg-gray-700">Home</Link>
-          <Link to="/shop" className="block px-4 py-2 hover:bg-gray-700">Shop</Link>
-          <Link to="/rentals" className="block px-4 py-2 hover:bg-gray-700">Rentals</Link>
-          <Link to="/booking" className="block px-4 py-2 hover:bg-gray-700">Booking</Link>
-          <Link to="/accessories" className="block px-4 py-2 hover:bg-gray-700">Accessories</Link>
-          <Link to="/contact" className="block px-4 py-2 hover:bg-gray-700">Contact</Link>
+          {["Home", "Shop", "Rentals", "Booking", "Accessories", "Contact"].map((item) => (
+            <Link key={item} to={`/${item.toLowerCase()}`} className="block px-4 py-2 hover:bg-gray-700">
+              {item}
+            </Link>
+          ))}
         </div>
       )}
 
-      {/* Render the login popup when showLoginPopup is true */}
+      {logoutMessage && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-4 py-2 rounded-md shadow-md">
+          {logoutMessage}
+        </div>
+      )}
+
       {showLoginPopup && <LoginPopup onClose={() => setShowLoginPopup(false)} />}
     </nav>
   );

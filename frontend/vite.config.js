@@ -8,5 +8,6 @@ export default defineConfig({
     proxy: {
       '/api': 'http://127.0.0.1:8000', // Proxy API requests to Django
     },
+    port: 5173, // Set the desired port here
   },
 });

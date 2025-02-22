@@ -31,7 +31,30 @@ urlpatterns = [
     path('image/', views.getimage, name='get_image'),
     path('api/accessories/<int:id>/', views.getAccessoryDetail, name='accessory-detail'),
     path('api/product/<int:id>/', views.getProductDetail, name='product-detail'),
+    
+    # ✅ Order Endpoints
+    path("orders/", views.get_user_orders, name="user_orders"),
+    path("checkout/", views.checkout, name="checkout"),
+    # 🛒 Cart Endpoints
+    path("cart/", views.view_cart, name="view_cart"),  # Get current cart items
+    path("cart/add/", views.add_to_cart, name="add_to_cart"),  # Correct endpoint
+    path("cart/view/", views.view_cart, name="view_cart"),  # Fetch cart items
+    path('cart/update/', views.update_cart_item, name='update-cart'),  # Update item quantity
+    path("cart/remove/", views.remove_from_cart, name="remove_from_cart"),  # Remove item from cart
+     # API to list available bikes for rent (accessible by everyone)
+    path('bikes/', views.rent_bike_list, name='rent-bike-list'),
+    
+    # API to create a new bike booking (accessible by authenticated users only)
+    path('rentals/bikes/', views.create_bike_booking, name='create_bike_booking'),  # Add this line
+    
+    # API to list all bike bookings (admin only)
+    path('admin/rentals/', views.user_bike_booking_list, name='bike-booking-list'),
+    
+    
+    path('verify_payment/', views.PaymentVerificationView.as_view(), name='verify_payment'),
+
 ]
+
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

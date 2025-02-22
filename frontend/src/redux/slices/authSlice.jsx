@@ -1,13 +1,32 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axiosInstance from "../../services/axiosInstance";
 
-// Updated API URLs
-const API_URLS = {
+export const API_URLS = {
   register: "http://127.0.0.1:8000/user/register/",
   login: "http://127.0.0.1:8000/user/login/",
   profile: "http://127.0.0.1:8000/user/profile/",
   changePassword: "http://127.0.0.1:8000/user/change-password/",
-  logout: "http://127.0.0.1:8000/user/logout/"
+  logout: "http://127.0.0.1:8000/user/logout/",
+  cart: "http://127.0.0.1:8000/api/cart/",  // Correct URL for viewing cart
+  addItemToCart: "http://127.0.0.1:8000/api/cart/add/",  // Correct URL for adding to cart
+  updateCartItem: "http://127.0.0.1:8000/api/cart/update/",  // Correct URL for updating cart item
+  removeCartItem: "http://127.0.0.1:8000/api/cart/remove/",  // Correct URL for removing from cart
+  checkout: "http://127.0.0.1:8000/api/checkout/",  // Correct URL for checkout
+  viewCart: "http://127.0.0.1:8000/api/cart/view/",  // corrected URL for viewing cart
+};
+
+
+// Helper function to get stored token
+const getStoredToken = () => {
+  try {
+    const storedToken = localStorage.getItem("token");
+    if (!storedToken) return null;
+    const parsedToken = JSON.parse(storedToken);
+    return parsedToken.accessToken || null; // Ensure we're returning the correct accessToken
+  } catch (error) {
+    console.error("Error retrieving token:", error);
+    return null;
+  }
 };
 
 // User Registration
@@ -16,7 +35,7 @@ export const registerUser = createAsyncThunk("auth/register", async (userData, {
     const response = await axiosInstance.post(API_URLS.register, userData);
     return response.data;
   } catch (error) {
-    return rejectWithValue(error.response?.data?.message || "Something went wrong.");
+    return rejectWithValue(error.response?.data?.message || "Registration failed.");
   }
 });
 
@@ -24,8 +43,13 @@ export const registerUser = createAsyncThunk("auth/register", async (userData, {
 export const loginUser = createAsyncThunk("auth/login", async (userData, { rejectWithValue }) => {
   try {
     const response = await axiosInstance.post(API_URLS.login, userData);
-    const { token } = response.data;
-    localStorage.setItem("token", JSON.stringify(token));  // Store token
+    const { accessToken, refreshToken } = response.data;
+
+    if (!accessToken || !refreshToken) {
+      throw new Error("Invalid token received from server.");
+    }
+
+    localStorage.setItem("token", JSON.stringify({ accessToken, refreshToken })); // Store both tokens in localStorage
     return response.data;
   } catch (error) {
     return rejectWithValue(error.response?.data?.message || "Login failed.");
@@ -35,7 +59,13 @@ export const loginUser = createAsyncThunk("auth/login", async (userData, { rejec
 // Fetch User Profile
 export const getUserProfile = createAsyncThunk("auth/profile", async (_, { rejectWithValue }) => {
   try {
-    const response = await axiosInstance.get(API_URLS.profile);
+    const token = getStoredToken();
+    if (!token) throw new Error("No authentication token found.");
+
+    const response = await axiosInstance.get(API_URLS.profile, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
     return response.data;
   } catch (error) {
     return rejectWithValue(error.response?.data?.message || "Failed to fetch profile.");
@@ -45,30 +75,53 @@ export const getUserProfile = createAsyncThunk("auth/profile", async (_, { rejec
 // Change Password
 export const changePassword = createAsyncThunk("auth/changePassword", async (passwordData, { rejectWithValue }) => {
   try {
-    const response = await axiosInstance.post(API_URLS.changePassword, passwordData);
+    const token = getStoredToken();
+    if (!token) throw new Error("No authentication token found.");
+
+    const response = await axiosInstance.post(API_URLS.changePassword, passwordData, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
     return response.data;
   } catch (error) {
     return rejectWithValue(error.response?.data?.message || "Password change failed.");
   }
 });
 
-// User Logout
-export const logoutUser = createAsyncThunk("auth/logout", async (_, { rejectWithValue }) => {
+// User Logout (Ensuring token clears immediately)
+export const logoutUser = createAsyncThunk("auth/logout", async (_, { dispatch, rejectWithValue }) => {
   try {
-    await axiosInstance.post(API_URLS.logout);
-    localStorage.removeItem("token");  // Clear token from localStorage
-    return { msg: "Logout successful" };
+    const storedToken = localStorage.getItem("token");
+    if (!storedToken) {
+      return rejectWithValue("No token found.");
+    }
+
+    const refreshToken = JSON.parse(storedToken).refreshToken;
+
+    if (!refreshToken) {
+      return rejectWithValue("Refresh token not found.");
+    }
+
+    const response = await axiosInstance.post(API_URLS.logout, {
+      refresh_token: refreshToken,
+    });
+
+    dispatch(clearState()); // Clear Redux state
+    localStorage.removeItem("token"); // Remove token from localStorage
+
+    return { msg: response.data.msg }; // Return success message
   } catch (error) {
+    console.error("Logout Error:", error);
     return rejectWithValue(error.response?.data?.message || "Logout failed.");
   }
 });
 
-// Redux Slice
+// Auth Slice
 const authSlice = createSlice({
   name: "auth",
   initialState: {
     user: null,
-    token: localStorage.getItem("token") ? JSON.parse(localStorage.getItem("token")) : null, // Initialize token from localStorage
+    token: getStoredToken(),
     loading: false,
     error: null,
     successMessage: null,
@@ -80,39 +133,43 @@ const authSlice = createSlice({
       state.loading = false;
       state.error = null;
       state.successMessage = null;
-      localStorage.removeItem("token");
+      localStorage.removeItem("token"); // Clear the token from localStorage on logout
     },
     resetSuccessMessage: (state) => {
-      state.successMessage = null; // Reset success message
-    }
+      state.successMessage = null;
+    },
   },
   extraReducers: (builder) => {
     builder
-      // Register
-      .addCase(registerUser.pending, (state) => { state.loading = true; })
-      .addCase(registerUser.fulfilled, (state, action) => {
+      .addCase(registerUser.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.successMessage = null;
+      })
+      .addCase(registerUser.fulfilled, (state) => {
         state.loading = false;
-        state.successMessage = action.payload.message;
+        state.successMessage = "Registration successful! Please log in.";
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-
-      // Login
-      .addCase(loginUser.pending, (state) => { state.loading = true; })
+      .addCase(loginUser.pending, (state) => {
+        state.loading = true;
+      })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
-        state.token = action.payload.token;  // Corrected the token name
+        state.token = action.payload.accessToken;
+        state.user = action.payload.user;
         state.successMessage = "Login successful";
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-
-      // Fetch Profile
-      .addCase(getUserProfile.pending, (state) => { state.loading = true; })
+      .addCase(getUserProfile.pending, (state) => {
+        state.loading = true;
+      })
       .addCase(getUserProfile.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload;
@@ -121,9 +178,9 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-
-      // Change Password
-      .addCase(changePassword.pending, (state) => { state.loading = true; })
+      .addCase(changePassword.pending, (state) => {
+        state.loading = true;
+      })
       .addCase(changePassword.fulfilled, (state, action) => {
         state.loading = false;
         state.successMessage = action.payload.msg;
@@ -132,21 +189,24 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-
-      // Logout
-      .addCase(logoutUser.pending, (state) => { state.loading = true; })
-      .addCase(logoutUser.fulfilled, (state) => {
+      .addCase(logoutUser.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(logoutUser.fulfilled, (state, action) => {
         state.loading = false;
         state.user = null;
         state.token = null;
-        state.successMessage = "Logout successful";
+        state.successMessage = action.payload.msg; // Use message from the fulfilled action
       })
       .addCase(logoutUser.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error = action.payload; // Handle rejection gracefully
       });
   },
 });
+
+// Add the selectUser selector at the bottom
+export const selectUser = (state) => state.auth.user;
 
 export const { clearState, resetSuccessMessage } = authSlice.actions;
 export default authSlice.reducer;

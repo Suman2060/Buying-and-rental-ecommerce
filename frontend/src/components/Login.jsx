@@ -5,24 +5,27 @@ import { useNavigate } from "react-router-dom";
 
 const Login = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate(); // For navigation after successful login
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { loading, error } = useSelector((state) => state.auth);
-  const [showSuccessPopup, setShowSuccessPopup] = useState(false); // For Login Success Popup
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const userData = { email, password };
-    dispatch(loginUser(userData)).then(() => {
-      // Show success popup if login is successful
-      setShowSuccessPopup(true);
 
-      // Redirect to the homepage after a short delay
+    try {
+      const response = await dispatch(loginUser(userData)).unwrap();
+      console.log("Login Successful:", response);
+
+      setShowSuccessPopup(true);
       setTimeout(() => {
-        navigate("/"); // Redirect to home page
-      }, 1500); // Adjust the delay time if needed
-    });
+        navigate("/");
+      }, 1500);
+    } catch (err) {
+      console.error("Login failed:", err);
+    }
   };
 
   return (

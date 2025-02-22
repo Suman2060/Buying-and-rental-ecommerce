@@ -7,8 +7,8 @@ from account.renderers import UserRenderer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.permissions import BasePermission
-from django.contrib.auth import get_user_model  # Import the correct User model
-    
+from django.contrib.auth import get_user_model # Import the correct User model
+from rest_framework.exceptions import ValidationError  
 class IsAdminUser(BasePermission):
     def has_permission(self, request, view):
         return request.user and request.user.is_authenticated and request.user.role == 'admin'
@@ -45,11 +45,12 @@ class UserRegistrationView(APIView):
         # Respond with the token and success message
         return Response({'token': token, 'message': 'User registration successful.'}, status=status.HTTP_201_CREATED)
 
+
+
 class UserLoginView(APIView):
     renderer_classes = [UserRenderer]
 
     def post(self, request, format=None):
-        print("hello")
         print("Received login request data:", request.data)
 
         serializer = UserLoginSerializer(data=request.data)
@@ -67,26 +68,38 @@ class UserLoginView(APIView):
 
         if user is not None:
             print("User authenticated successfully:", user)
-            token = TokenRefreshView.get_tokens_for_user(user)
-            return Response({'Token': token, 'msg': 'Login Success'}, status=status.HTTP_200_OK)
+
+            # Generate access and refresh tokens
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+            refresh_token = str(refresh)
+
+            return Response(
+                {
+                    "accessToken": access_token,
+                    "refreshToken": refresh_token,
+                    "msg": "Login Success",
+                },
+                status=status.HTTP_200_OK,
+            )
         else:
             print("Authentication failed! Checking user existence...")
 
             # Get the correct User model
             User = get_user_model()
             try:
-                test_user = User.objects.get(email=email)  # Now correctly referencing the User model
+                test_user = User.objects.get(email=email)
                 print("User exists:", test_user)
                 print("Stored password hash:", test_user.password)
-                print("Trying to match password manually:", test_user.check_password(password))  # Should return True
-            except User.DoesNotExist:  # Correct exception handling
+                print("Trying to match password manually:", test_user.check_password(password))
+            except User.DoesNotExist:
                 print("User does not exist!")
 
             return Response(
-                {'errors': {'non_field_errors': ['Email or password does not match any registered user']}},
-                status=status.HTTP_404_NOT_FOUND
+                {"errors": {"non_field_errors": ["Email or password does not match any registered user"]}},
+                status=status.HTTP_404_NOT_FOUND,
             )
-            
+
 class UserProfileView(APIView):
     renderer_classes = [UserRenderer]
     permission_classes = [IsAuthenticated]
@@ -121,9 +134,18 @@ class LogoutView(APIView):
 
     def post(self, request, format=None):
         try:
-            refresh_token = request.data["refresh_token"]
+            # Ensure refresh token is provided
+            refresh_token = request.data.get("refresh_token")
+            if not refresh_token:
+                raise ValidationError("Refresh token is required.")
+
             token = RefreshToken(refresh_token)
+            # Blacklist the refresh token
             token.blacklist()
+
             return Response({"msg": "Logout successful."}, status=status.HTTP_205_RESET_CONTENT)
+
+        except ValidationError as e:
+            return Response({"msg": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+            return Response({"msg": "An error occurred while logging out."}, status=status.HTTP_400_BAD_REQUEST)

@@ -54,6 +54,7 @@ AUTHENTICATION_BACKENDS = [
 AUTH_USER_MODEL = 'account.User' 
 
 
+KHALTI_SECRET_KEY = '88631db9ac124f24b29c126be46c777b'  # Your Khalti secret key
 
 #this project configuration for the simple JWT token
 
@@ -94,6 +95,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+         'OPTIONS': {
+            'timeout': 20,  # Optional, increases database timeout to avoid lock issues
+        },
     }
 }
 

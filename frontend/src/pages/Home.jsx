@@ -8,6 +8,7 @@ const Home = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
+      
       <Hero />
 
       {/* Full-width product section */}
@@ -19,7 +20,7 @@ const Home = () => {
           <ProductCard />
         </div>
       </div>
-
+      
       <AboutUs />
       <Footer />
     </div>
