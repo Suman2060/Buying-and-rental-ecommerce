@@ -2,6 +2,7 @@ from datetime import timedelta
 from pathlib import Path
 import os
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -33,6 +34,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',  
     'account',
+    # 'Khalti',
 ]
 
 MIDDLEWARE = [
@@ -54,8 +56,8 @@ AUTHENTICATION_BACKENDS = [
 AUTH_USER_MODEL = 'account.User' 
 
 
-KHALTI_SECRET_KEY = '88631db9ac124f24b29c126be46c777b'  # Your Khalti secret key
-
+KHALTI_SECRET_KEY = "73cdcf7a8dfd4f74ac5a77e5650e6324"  # Your Khalti secret key
+KHALTI_VERIFY_URL =  "https://dev.khalti.com/api/v2/"
 #this project configuration for the simple JWT token
 
 REST_FRAMEWORK = {

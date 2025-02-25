@@ -13,10 +13,13 @@ from rest_framework.exceptions import PermissionDenied,NotFound
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 import logging
+import requests
+from rest_framework import status
 from .models import RentBike,BikeBooking
 from .serializer import BikeBookingSerializer,RentBikeSerializer
 from django.conf import settings
 from rest_framework.views import APIView
+# import requests
 # Create your views here.
 
 #these are the api to get all products
@@ -260,26 +263,56 @@ def view_cart(request):
 
 
 
-@api_view(["POST"])  # Ensuring correct HTTP method
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
+from .models import CartItem  # Assuming CartItem model is available
+
+@api_view(["POST"])
 def update_cart_item(request):
-    product_id = request.data.get("product_id")
+    # Debug: print incoming data
+    print(request.data)
+
+    # Get item data from the request
+    cart_item_id = request.data.get("item_id")  # This is now the cart item ID
+    item_name = request.data.get("item_name")
+    item_type = request.data.get("item_type")
     quantity = request.data.get("quantity", 1)
 
-    if not product_id:
-        return Response({"error": "Product ID is required"}, status=400)
+    # Validate input
+    if not cart_item_id:
+        return Response({"error": "Cart Item ID is required"}, status=400)
 
-    try:
-        cart_item = CartItem.objects.get(product_id=product_id)
-    except CartItem.DoesNotExist:
-        return Response({"error": "Item not in cart"}, status=404)
+    if not item_type:
+        return Response({"error": "Item Type is required"}, status=400)
 
+    # Fetch the cart item using the cart_item_id
+    cart_item = CartItem.objects.filter(id=cart_item_id).first()
+    if not cart_item:
+        return Response({"error": "Item not found in cart"}, status=404)
+
+    # Update the quantity or remove the item if quantity is zero
     if quantity > 0:
         cart_item.quantity = quantity
         cart_item.save()
     else:
-        cart_item.delete()  # Remove if quantity is zero
+        cart_item.delete()
 
-    return Response({"message": "Cart updated successfully"})
+    # Get updated cart items after modification
+    updated_cart = CartItem.objects.all()
+
+    # Serialize cart items
+    cart_data = [
+        {
+            "item_id": item.id,  # Use the cart item's ID
+            "item_name": item.product.productname if item.product else item.accessory.accessory_name,
+            "item_type": "product" if item.product else "accessory",
+            "quantity": item.quantity,
+        }
+        for item in updated_cart
+    ]
+
+    # Return updated cart data along with a success message
+    return Response({"message": "Cart updated successfully", "cart_items": cart_data})
 
 
 from rest_framework.decorators import api_view
@@ -290,41 +323,36 @@ import json
 from .models import CartItem, Products, Accessories
 
 
-@api_view(['DELETE'])
+@api_view(['POST'])  # Change from DELETE to POST
 def remove_from_cart(request):
     try:
-        # 🔹 Parse request body manually for DELETE requests
-        data = json.loads(request.body.decode('utf-8')) 
+        data = request.data  # Use request.data instead of manually parsing JSON
 
         item_id = data.get("item_id")
         item_name = data.get("item_name")
         item_type = data.get("item_type")
 
-        # 🔸 Validate required fields
         if not item_id and not item_name:
             return Response({"error": "Either Item ID or Item Name is required"}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         if item_type not in ["product", "accessory"]:
             return Response({"error": "Invalid item type. Must be 'product' or 'accessory'."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 🔹 Retrieve and delete item from cart
         if item_type == "product":
-            item = Products.objects.get(_id=item_id) if item_id else Products.objects.get(productname=item_name)
+            item = Products.objects.filter(_id=item_id).first() or Products.objects.filter(productname=item_name).first()
             cart_item = CartItem.objects.filter(product=item).first()
         else:  # item_type == "accessory"
-            item = Accessories.objects.get(_id=item_id) if item_id else Accessories.objects.get(accessory_name=item_name)
+            item = Accessories.objects.filter(_id=item_id).first() or Accessories.objects.filter(accessory_name=item_name).first()
             cart_item = CartItem.objects.filter(accessory=item).first()
 
         if not cart_item:
             return Response({"error": "Item not found in cart"}, status=status.HTTP_404_NOT_FOUND)
 
         cart_item.delete()
-        return Response({"message": "Item removed from cart"}, status=status.HTTP_204_NO_CONTENT)
+        return Response({"message": "Item removed from cart"}, status=status.HTTP_200_OK)  # Use 200 instead of 204 to send a success message
 
-    except (Products.DoesNotExist, Accessories.DoesNotExist):
-        return Response({"error": "Item does not exist"}, status=status.HTTP_404_NOT_FOUND)
-    except json.JSONDecodeError:
-        return Response({"error": "Invalid JSON format"}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 # api for displayong rental bike availables 
@@ -524,3 +552,40 @@ class PaymentVerificationView(APIView):
 
         except request.exceptions.RequestException as e:
             return Response({"error": "Payment verification request failed.", "details": str(e)}, status=500)
+        
+        
+        
+# khalti verify payment
+
+class VerifyKhaltiPayment(APIView):
+     def post(self,request,*args,**kwargs):
+                token = request.POST.get('token')
+                amount = request.POST.get('amount')
+                payload = {
+                    "token":token,
+                    "amount":amount,
+                }
+                headers = {
+                    "Authorization": "Key {}".format(settings.KHALTI_SECRET_KEY)
+                }
+                try:
+                    response = requests.post(settings.KHALTI_VERIFY_URL,payload,headers=headers)
+                    if response.status_code == 200 :
+                        return Response({
+                            'status':True,
+                            'details':response.json(),
+                        })
+
+                    else:
+                        return Response({
+                            'status':False,
+                            'details':response.json(),
+                        })
+
+                except requests.exceptions.RequestException as e:
+                    return Response({
+                        'status':False,
+                        'details':str(e),
+                    })
+
+           

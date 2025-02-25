@@ -18,6 +18,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from . import views
 from django.urls import path
+from .views import VerifyKhaltiPayment
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 
@@ -52,7 +53,7 @@ urlpatterns = [
     
     
     path('verify_payment/', views.PaymentVerificationView.as_view(), name='verify_payment'),
-
+    path('khalti/verifypayment/',VerifyKhaltiPayment.as_view(), name='verify_payment')
 ]
 
 

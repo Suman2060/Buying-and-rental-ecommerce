@@ -38,42 +38,64 @@ const AddToCartPage = () => {
     }
   };
 
-const handleRemoveItem = async (item) => {
-  const item_id = item.product ? item.product._id : item.accessory ? item.accessory._id : null;
-  const item_name = item.product ? item.product.productname : item.accessory ? item.accessory.accessory_name : null;
-  const item_type = item.product ? "product" : item.accessory ? "accessory" : null;
-
-  // Ensure we are sending either item_id or item_name
-  if (!item_id && !item_name) {
-    console.error("Item ID or Item Name is required");
-    return;
-  }
-
-  const data = {
-    item_id: item_id || undefined,   // Only include item_id if it exists
-    item_name: item_name || undefined, // Only include item_name if it exists
-    item_type,
-  };
-
-  try {
-    const response = await axios.delete("http://127.0.0.1:8000/api/cart/remove/", {
-      headers: { "Content-Type": "application/json" },
-      data,
-    });
-
-    if (response.status === 204) {
-      fetchCartData(); // Refresh cart data after removing item
-    } else {
-      console.error("Failed to remove item", response.data);
+  const handleRemoveItem = async (item) => {
+    let item_id = null;
+    let item_name = null;
+    let item_type = null;
+  
+    // Check if the item is a product
+    if (item.product) {
+      item_id = item.product._id;  // Using product._id directly
+      item_name = item.product.product_name;  // Using product_name directly
+      item_type = "product";
     }
-  } catch (error) {
-    console.error("Failed to remove item from cart:", error.response || error);
-  }
-};
-
+    // Check if the item is an accessory
+    else if (item.accessory) {
+      item_id = item.accessory._id;  // Using accessory._id directly
+      item_name = item.accessory.accessory_name;  // Using accessory_name directly
+      item_type = "accessory";
+    }
+  
+    // Log the item data for debugging
+    console.log("Item data:", item);
+    console.log("Item ID:", item_id);
+    console.log("Item Name:", item_name);
+    console.log("Item Type:", item_type);
+  
+    // Ensure we are sending either item_id or item_name
+    if (!item_id && !item_name) {
+      console.error("Item ID or Item Name is required");
+      return;
+    }
+  
+    const data = {
+      item_id: item_id || undefined,   // Only include item_id if it exists
+      item_name: item_name || undefined, // Only include item_name if it exists
+      item_type,
+    };
+  
+    try {
+      const response = await axios.post("http://127.0.0.1:8000/api/cart/remove/", data, {
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`, // Add token for authorization
+        },
+      });
+  
+      if (response.status === 200) { // Check for successful removal
+        fetchCartData(); // Refresh cart data after removing item
+      } else {
+        console.error("Failed to remove item", response.data);
+      }
+    } catch (error) {
+      console.error("Failed to remove item from cart:", error.response || error);
+    }
+  };
+  
+  
   const handleKhaltiPayment = () => {
     const config = {
-      publicKey: "88631db9ac124f24b29c126be46c777b",
+      publicKey: "ba029de243f444d9aa376c7b2a891930", // Use the correct public key here
       productIdentity: "cart_payment",
       productName: "Shopping Cart Checkout",
       productUrl: "localhost:5173/cart",
@@ -90,15 +112,16 @@ const handleRemoveItem = async (item) => {
       },
       paymentPreference: ["KHALTI", "EBANKING", "MOBILE_BANKING", "CONNECT_IPS", "SCT"],
     };
-
+  
     const checkout = new KhaltiCheckout(config);
     checkout.show({ amount: totalPrice * 100 });
   };
+  
 
   const sendPaymentToBackend = (paymentData) => {
     axios
       .post(
-        "http://127.0.0.1:8000/api/cart/verify_payment/",
+        "http://127.0.0.1:8000/api/khalti/verifypayment/",
         {
           cart_id: "cart_payment",
           payment_id: paymentData.token,
@@ -124,39 +147,71 @@ const handleRemoveItem = async (item) => {
   };
 
   const handleUpdateQuantity = async (item, newQuantity) => {
-    if (newQuantity < 1) return;
+    if (newQuantity < 1) return;  // Don't allow quantity to be less than 1
   
-    // Determine whether it's a product or an accessory and send the correct ID
-    const product_id = item.product ? item.product._id : null;
-    const accessory_id = item.accessory ? item.accessory._id : null;
+    // Initialize variables for item details
+    let item_id = null;
+    let item_name = null;
+    let item_type = null;
   
-    // Ensure we send either product_id or accessory_id
-    const item_id = product_id || accessory_id;
+    // Check if the item contains 'product' or 'accessory' dynamically
+    if (item.product) {
+      item_id = item.id;  // Use product ID instead of cart_item id
+      item_name = item.product.product_name;  // Use product name
+      item_type = "product";
+    } else if (item.accessory) {
+      item_id = item.id;  // Use accessory ID instead of cart_item id
+      item_name = item.accessory.accessory_name;  // Use accessory name
+      item_type = "accessory";
+    }
   
-    if (!item_id) {
-      console.error("Product ID or Accessory ID is required");
+    // Ensure we are sending item_id and item_name
+    if (!item_id || !item_name) {
+      console.error("Item ID and Name are required");
       return;
     }
   
+    // Log item details for debugging
+    console.log("Item ID:", item_id);
+    console.log("Item Name:", item_name);
+    console.log("Item Type:", item_type);
+  
+    // Prepare the payload for the request
+    const data = {
+      item_id,       // Send product_id (or accessory_id)
+      item_name,     // Send product_name (or accessory_name)
+      item_type,     // Either "product" or "accessory"
+      quantity: newQuantity, // New quantity to update
+    };
+  
+    console.log("Payload being sent: ", data); // Log the payload for debugging
+  
     try {
+      // Make the API call to update the cart
       const response = await axios.post(
         "http://127.0.0.1:8000/api/cart/update/",
+        data,
         {
-          product_id: item_id,
-          quantity: newQuantity,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,  // Authorization header with the JWT token
+            "Content-Type": "application/json",  // Ensure correct content type
+          },
         }
       );
   
+      // If the update was successful, refresh the cart data
       if (response.data.message === "Cart updated successfully") {
-        fetchCartData(); // Refresh cart data
+        fetchCartData();  // Refresh cart data after successful update
+      } else {
+        console.error("Failed to update cart:", response.data.error);
       }
     } catch (error) {
       console.error("Failed to update cart item:", error.response || error);
     }
   };
+  
+  
+  
   
 
   if (loading) {
@@ -211,15 +266,20 @@ const handleRemoveItem = async (item) => {
                   </div>
 
                   <div className="flex items-center space-x-4">
-                    <input
+                  <input
                       type="number"
                       value={item.quantity}
-                      onChange={(e) => handleUpdateQuantity(item, parseInt(e.target.value))}
+                      onChange={(e) => {
+                        const newQuantity = parseInt(e.target.value);
+                        if (newQuantity >= 1) { // Only allow positive values
+                          handleUpdateQuantity(item, newQuantity);
+                        }
+                      }}
                       className="w-16 text-center p-2 border rounded-md"
                       min="1"
                     />
                     <button
-                      onClick={() => handleRemoveItem(item.id)}
+                      onClick={() => handleRemoveItem(item)}
                       className="text-red-600 hover:text-red-800 transition-all"
                     >
                       Remove
