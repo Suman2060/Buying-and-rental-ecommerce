@@ -9,6 +9,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('ecomapp.urls')),
     path('user/', include("account.urls")),
+    # path('api/', include('rentals.urls')),
     
 ]
 

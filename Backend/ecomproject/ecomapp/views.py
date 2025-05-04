@@ -19,6 +19,7 @@ from .models import RentBike,BikeBooking
 from .serializer import BikeBookingSerializer,RentBikeSerializer
 from django.conf import settings
 from rest_framework.views import APIView
+from django.core.mail import send_mail
 # import requests
 # Create your views here.
 
@@ -589,3 +590,33 @@ class VerifyKhaltiPayment(APIView):
                     })
 
            
+           
+#api for sending mail after rental booking
+@api_view(['POST'])
+def send_booking_email(request):
+    try:
+        name = request.data.get('name')
+        email = request.data.get('email')
+        bike_name = request.data.get('bike_name')
+        start_date = request.data.get('start_date')
+        end_date = request.data.get('end_date')
+
+        if not all([name, email, bike_name, start_date, end_date]):
+            return Response({"error": "Missing required fields"}, status=status.HTTP_400_BAD_REQUEST)
+
+        subject = "Your Bike Booking is Confirmed"
+        message = (
+            f"Hello {name},\n\n"
+            f"Thank you for booking with us!\n"
+            f"Bike: {bike_name}\n"
+            f"Rental Duration: {start_date} to {end_date}\n\n"
+            "Please remember to bring your citizenship card when collecting the bike.\n\n"
+            "Best regards,\n"
+            "BikeFarm Team"
+        )
+
+        send_mail(subject, message, 'your_email@gmail.com', [email])  # Update from_email
+        return Response({"message": "Email sent successfully"}, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

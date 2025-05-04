@@ -95,8 +95,8 @@ const AddToCartPage = () => {
   
   const handleKhaltiPayment = () => {
     const config = {
-      publicKey: "ba029de243f444d9aa376c7b2a891930", // Use the correct public key here
-      productIdentity: "cart_payment",
+      publicKey: "<3fee18a64e664e3fa2ac5b7cff1c6c48>", // Use the correct public key here
+      productIdentity: "12456",
       productName: "Shopping Cart Checkout",
       productUrl: "localhost:5173/cart",
       eventHandler: {

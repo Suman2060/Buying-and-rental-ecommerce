@@ -11,7 +11,7 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Products
         fields = ['_id', 'user', 'productname', 'image', 'productbrand', 'productcategory', 
-                  'productinfo', 'rating', 'price', 'stockcount', 'createdat']
+                  'productinfo', 'price', 'stockcount', 'createdat']
 # serializer for accessory
 class AccessoriesSerializer(serializers.ModelSerializer):
     _id = serializers.IntegerField(read_only=True)  # Explicitly defining _id
@@ -19,7 +19,7 @@ class AccessoriesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Accessories
         fields = ['_id', 'user', 'product', 'accessory_name', 'image', 'compatible_with', 
-                  'material', 'brand', 'category', 'description', 'rating', 'price', 
+                  'material', 'brand', 'category', 'description', 'price', 
                   'stock_count', 'created_at']
 
 class UserSerializer(serializers.ModelSerializer):

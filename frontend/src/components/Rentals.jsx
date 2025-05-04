@@ -119,7 +119,7 @@ const RentalsPage = () => {
                     onClick={() => handleViewDetails(bike)}
                     className="text-blue-600 font-semibold hover:underline transition"
                   >
-                    View Details
+                    {/* View Details */}
                   </button>
                   <button
                     onClick={() => handleBookNow(bike)}

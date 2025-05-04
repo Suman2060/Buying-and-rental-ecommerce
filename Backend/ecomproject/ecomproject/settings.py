@@ -22,6 +22,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    "semantic_admin",
+    "semantic_forms",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -56,7 +58,7 @@ AUTHENTICATION_BACKENDS = [
 AUTH_USER_MODEL = 'account.User' 
 
 
-KHALTI_SECRET_KEY = "73cdcf7a8dfd4f74ac5a77e5650e6324"  # Your Khalti secret key
+KHALTI_SECRET_KEY = "<3fee18a64e664e3fa2ac5b7cff1c6c48>"  # Your Khalti secret key
 KHALTI_VERIFY_URL =  "https://dev.khalti.com/api/v2/"
 #this project configuration for the simple JWT token
 
@@ -214,3 +216,12 @@ CORS_ALLOWED_ORIGINS = [
 
 # Optionally, allow all origins (not recommended for production)
 CORS_ALLOW_ALL_ORIGINS = True
+
+#Email Configiration
+EMAIL_BACKEND='django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST='smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'sumandangol2060@gmail.com'
+EMAIL_HOST_PASSWORD = 'nbxcrqwpathlqtai'
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER

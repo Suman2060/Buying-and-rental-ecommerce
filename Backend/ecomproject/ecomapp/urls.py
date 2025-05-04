@@ -53,7 +53,10 @@ urlpatterns = [
     
     
     path('verify_payment/', views.PaymentVerificationView.as_view(), name='verify_payment'),
-    path('khalti/verifypayment/',VerifyKhaltiPayment.as_view(), name='verify_payment')
+    path('khalti/verifypayment/',VerifyKhaltiPayment.as_view(), name='verify_payment'),
+    
+    #url for sending email for booking
+    path('send-booking-email/', views.send_booking_email, name='send-booking-email'),
 ]
 
 
