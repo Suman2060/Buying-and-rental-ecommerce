@@ -20,6 +20,9 @@ from .serializer import BikeBookingSerializer,RentBikeSerializer
 from django.conf import settings
 from rest_framework.views import APIView
 from django.core.mail import send_mail
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.conf import settings
 # import requests
 # Create your views here.
 
@@ -400,7 +403,7 @@ def rent_bike_list(request):
 
 # Create a new bike booking (only accessible to logged-in users)
 from django.shortcuts import get_object_or_404, render
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from .models import RentBike, BikeBooking
 from django.contrib.auth.decorators import login_required
 
@@ -519,7 +522,7 @@ def update_bike_booking_status(request, booking_id):
 
 # api for handling payment verifcation
 class PaymentVerificationView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
         payment_id = request.data.get('payment_id')
@@ -558,38 +561,95 @@ class PaymentVerificationView(APIView):
         
 # khalti verify payment
 
-class VerifyKhaltiPayment(APIView):
-     def post(self,request,*args,**kwargs):
-                token = request.POST.get('token')
-                amount = request.POST.get('amount')
-                payload = {
-                    "token":token,
-                    "amount":amount,
-                }
-                headers = {
-                    "Authorization": "Key {}".format(settings.KHALTI_SECRET_KEY)
-                }
-                try:
-                    response = requests.post(settings.KHALTI_VERIFY_URL,payload,headers=headers)
-                    if response.status_code == 200 :
-                        return Response({
-                            'status':True,
-                            'details':response.json(),
-                        })
 
-                    else:
-                        return Response({
-                            'status':False,
-                            'details':response.json(),
-                        })
+@api_view(['POST'])
+def initiate_khalti_payment(request):
+    data = request.data
+    headers = {
+        "Authorization": f"Key {settings.KHALTI_SECRET_KEY}",
+        "Content-Type": "application/json",
+    }
 
-                except requests.exceptions.RequestException as e:
-                    return Response({
-                        'status':False,
-                        'details':str(e),
-                    })
+    payload = {
+        "return_url": data.get("return_url"),
+        "website_url": data.get("website_url"),
+        "amount": data.get("amount"),
+        "purchase_order_id": data.get("purchase_order_id"),
+        "purchase_order_name": data.get("purchase_order_name"),
+        "customer_info": data.get("customer_info"),
+        "amount_breakdown": data.get("amount_breakdown"),
+        "product_details": data.get("product_details"),
+    }
 
-           
+    try:
+        response = requests.post(settings.KHALTI_VERIFY_URL, json=payload, headers=headers)
+        return JsonResponse(response.json(), status=response.status_code)
+    except requests.RequestException as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+    
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def verify_khalti_payment(request):
+    """
+    Verifies the Khalti payment using the provided pidx (Payment ID).
+    """
+    try:
+        pidx = request.data.get("pidx")  # Get pidx from frontend
+        if not pidx:
+            return Response({'error': 'Payment ID (pidx) is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        order = Order.objects.filter(ord_id=request.data.get("order_id")).first()
+        if not order:
+            return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Prepare request for Khalti verification
+        verify_payload = {
+            "pidx": pidx
+        }
+
+        headers = {
+            "Authorization": f"Key {settings.KHALTI_SECRET_KEY}",
+            "Content-type": "application/json",
+        }
+
+        # Send request to Khalti API to verify payment
+        response = requests.post(
+            settings.KHALTI_LOOKUP_URL,  # Use live URL for production
+            json=verify_payload,
+            headers=headers
+        )
+
+        if response.status_code == 200:
+            khalti_data = response.json()
+            if khalti_data.get("status") == "Completed":
+                # Update order status if payment is successful
+                order.status = "completed"
+                order.save()
+
+                cart = order.cart  # Assuming order has ForeignKey to Cart as `cart`
+                cart.paid = True
+                cart.save()
+                
+                return Response({
+                    "verified": True,
+                    "message": "Payment verified successfully",
+                    "order_id": order.ord_id,
+                    "transaction_info": khalti_data
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    "error": "Payment verification failed",
+                    "details": khalti_data
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            "error": "Error from Khalti API",
+            "details": response.text
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
            
 #api for sending mail after rental booking
 @api_view(['POST'])

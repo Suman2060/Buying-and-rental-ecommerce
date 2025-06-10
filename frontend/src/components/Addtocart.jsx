@@ -93,53 +93,70 @@ const AddToCartPage = () => {
   };
   
   
-  const handleKhaltiPayment = () => {
-    const config = {
-      publicKey: "<3fee18a64e664e3fa2ac5b7cff1c6c48>", // Use the correct public key here
-      productIdentity: "12456",
-      productName: "Shopping Cart Checkout",
-      productUrl: "localhost:5173/cart",
-      eventHandler: {
-        onSuccess(payload) {
-          sendPaymentToBackend(payload);
-        },
-        onError(error) {
-          alert("Payment failed. Please try again.");
-        },
-        onClose() {
-          console.log("Payment widget closed.");
-        },
+const handleKhaltiRedirectPayment = async () => {
+  try {
+    const response = await axios.post("http://127.0.0.1:8000/api/initiate/", {
+      return_url: "http://localhost:5173/payment-success",
+      website_url: "http://localhost:5173",
+      amount: totalPrice * 100,
+      purchase_order_id: "ORDER123", // generate dynamically
+      purchase_order_name: "Cart Payment",
+      customer_info: {
+        name: "Customer Name",
+        email: "customer@example.com",
+        phone: "9800000000"
       },
-      paymentPreference: ["KHALTI", "EBANKING", "MOBILE_BANKING", "CONNECT_IPS", "SCT"],
-    };
-  
-    const checkout = new KhaltiCheckout(config);
-    checkout.show({ amount: totalPrice * 100 });
-  };
-  
-
-  const sendPaymentToBackend = (paymentData) => {
-    axios
-      .post(
-        "http://127.0.0.1:8000/api/khalti/verifypayment/",
+      amount_breakdown: [
         {
-          cart_id: "cart_payment",
-          payment_id: paymentData.token,
-          amount: paymentData.amount,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
+          label: "Subtotal",
+          amount: totalPrice * 100,
         }
-      )
-      .then(() => {
-        alert("Payment Successful!");
-        clearCart();
-        navigate("/order-confirmation");
-      })
-      .catch(() => {
-        alert("Error verifying your payment. Please contact support.");
-      });
-  };
+      ],
+      product_details: [
+        {
+          identity: "1234567890",
+          name: "Bike Order",
+          total_price: totalPrice * 100,
+          quantity: 1,
+          unit_price: totalPrice * 100
+        }
+      ]
+    });
+
+    if (response.data && response.data.payment_url) {
+      window.location.href = response.data.payment_url; // Redirect to Khalti
+    } else {
+      alert("Failed to initiate Khalti payment");
+    }
+  } catch (error) {
+    console.error("Payment error", error);
+    alert("Something went wrong initiating payment.");
+  }
+};
+
+
+  // const sendPaymentToBackend = (paymentData) => {
+  //   axios
+  //     .post(
+  //       "http://127.0.0.1:8000/api/khalti/verifypayment/",
+  //       {
+  //         cart_id: "cart_payment",
+  //         payment_id: paymentData.token,
+  //         amount: paymentData.amount,
+  //       },
+  //       {
+  //         headers: { Authorization: `Bearer ${token}` },
+  //       }
+  //     )
+  //     .then(() => {
+  //       alert("Payment Successful!");
+  //       clearCart();
+  //       navigate("/order-confirmation");
+  //     })
+  //     .catch(() => {
+  //       alert("Error verifying your payment. Please contact support.");
+  //     });
+  // };
 
   const handleLogout = () => {
     dispatch(logoutUser());
@@ -302,7 +319,7 @@ const AddToCartPage = () => {
         <div className="flex justify-between items-center mt-8">
           <span className="text-2xl font-semibold text-gray-800">Total: Rs. {totalPrice.toFixed(2)}</span>
           <button
-            onClick={handleKhaltiPayment}
+            onClick={handleKhaltiRedirectPayment}
             className="bg-blue-600 text-white px-6 py-3 rounded-md shadow-md hover:bg-blue-700 transition-all"
           >
             Proceed to Checkout

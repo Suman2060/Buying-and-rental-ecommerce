@@ -13,6 +13,8 @@ import ProtectedRoute from './components/ProtectedRoute'; // Protect Profile rou
 import RegisterPage from './pages/RegisterPage'; // Import RegisterPage
 import PasswordChange from './pages/PasswordChange'; // Import Change Password Page
 import AddToCartPage from './components/Addtocart';
+import PaymentSuccess from "./pages/PaymentSuccess";
+
 // import AddToCartPage from './pages/AddtoCart';
 
 const App = () => {
@@ -34,6 +36,7 @@ const App = () => {
         <Route path="/account/*" element={<Account />} /> {/* Handles login, register, etc. */}
         <Route path="/register" element={<RegisterPage />} /> {/* Register Page Route */}
         <Route path="/change-password" element={<PasswordChange />} /> {/* Change Password Route */}
+        <Route path="/payment-success" element={<PaymentSuccess />} />
 
         {/* Protected Routes */}
         <Route

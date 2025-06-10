@@ -32,11 +32,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'ecomapp',
     'rest_framework',
+    'khalti',
     'corsheaders',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',  
     'account',
-    # 'Khalti',
+    
 ]
 
 MIDDLEWARE = [
@@ -58,8 +59,11 @@ AUTHENTICATION_BACKENDS = [
 AUTH_USER_MODEL = 'account.User' 
 
 
-KHALTI_SECRET_KEY = "<3fee18a64e664e3fa2ac5b7cff1c6c48>"  # Your Khalti secret key
-KHALTI_VERIFY_URL =  "https://dev.khalti.com/api/v2/"
+KHALTI_SECRET_KEY = "4806340ca6494595896a267b2ba3c049"
+KHALTI_VERIFY_URL = "https://a.khalti.com/api/v2/epayment/initiate/"
+KHALTI_LOOKUP_URL = "https://a.khalti.com/api/v2/epayment/lookup/"
+
+
 #this project configuration for the simple JWT token
 
 REST_FRAMEWORK = {
